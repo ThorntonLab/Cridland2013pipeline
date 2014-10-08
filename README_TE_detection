@@ -1,0 +1,76 @@
+This README goes through the process of detecting TEs using the output from the structural variation detection pipeline
+
+This pipeline requires all of the same packages as the structural variation pipeline plus uses the program phrap (www.phrap.org) 
+Ewing B, Green P: Basecalling of automated sequencer traces using phred. II. Error probabilities. Genome Research 8:186-194 (1998).
+This software must be requested separately and installed.
+
+This pipeline can be run on linux-based systems, windows systems are not supported.
+
+This pipeline comes with several input files that are specific to the drosophila melanogaster genome where TEs have been well studied in the reference system.  
+To investigate TEs in a different system these files must be created for that system.
+
+NOTE: These scripts are set up to require the full path for all input files!
+
+These files are as follows:
+
+TE_positions - a tab delimited file with three columns :  Chromosome Start Stop
+This file indicates the locations of known TEs in the reference sequence
+
+NOT_TE_positions - a tab delimited file with three columns : Chromosome Start Stop
+This file indicates the regions of the genome which are not known reference TEs
+
+reference_teclust.output - a tab delimited file with 11 columns - see main README for more information about this file
+Columns are : 
+chromo  - Chromosome
+nplus  - # of read supporting this insertion on the plus strand 
+nminus  - # of read supporting this insertion on the minus strand  
+pfirst  - upstream range start
+plast  - upstream range stop 
+pdist  - distance from nearest reference TE - for upstream
+pin   - upstream range within a reference TE - 0 or 1 for no or yes(respectively)  
+mfirst - downstream range start 
+mlast  - downstream range stop 
+mdist - distance from nearest reference TE - for downstream  
+min - downstream range within a reference TE - 0 or 1 for no or yes(respectively) 
+
+TE_detection_pipeline.pl - this pipeline identifies read-pairs which are suggestive of a TE insertion
+
+INPUT: Input must be entered in the order below
+1) The line number of the sample - as in the structural variation detection pipeline
+2) The mdist file - must specify the full path
+3) The umu file - must specify the full path
+4) The bam file - must specify the full path - the user must provide a single merged bam file
+5) The file with TE positions in the reference sequence - the user must provide the full path
+6) The file with the positions that are NOT TEs - provided for D. melanogaster
+7) The formatted file with reference TEs - for calling TEs known in the reference
+8) The flag file - this indicates which strand a read is on based on the sam flag  - provided sam_flags
+9) The user must specify and output directory
+
+creates several output files
+
+1) an intermediate file - line$sample_intermediate : This file will be the input into the next phase where fasta files are made for each group of reads indicating a particular insertion.
+2) a te_pos_estimate file - line$sample_te_pos_estimate : This file has the estimated breakpoints of TE insertions based on read clustering
+   4 columns : Chromosome ID# Left_estimate Right_estimate
+3) line$sample.teclust_output.gz - provides information about the number of read pairs supporting the insertion as well as the estimated upstream and downstream ranges
+
+check_intermediate_file_for_repeats.pl - this pipeline checks the intermediate file for potential repeats and trims
+
+INPUT:
+1) the intermediate file output from TE_detection_pipeline.pl
+2) an output file
+
+intermediate_to_fasta.pl - this file makes fasta/qual files as input for phrap
+
+INPUT:
+1) the output file from check_intermediate_file_for_repeats.pl
+2) a read.fastq.gz file - reformatted from the structural variation detection pipeline
+3) an Illumina offset value to translate Illumina quality scores to phrap quality scores - this is either 64 or 33
+4) an output directory
+
+run_phrap.pl - This script reads all fasta/qual files in a directory and does local reconstruction using phrap.  
+The output .contig files can than be aligned to a set of reference genome TEs.
+
+INPUT:
+1) The number of processors to be used
+
+This script also calls shortphrap.pl - this script limits the maximum number of reads that can be in a fasta file -otherwise this can take a very long time.
